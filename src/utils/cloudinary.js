@@ -1,5 +1,5 @@
 import { v2 as cloudinary } from 'cloudinary';
-import fs from "fs "
+import fs from "fs"
 
     // Configuration
     cloudinary.config({ 
@@ -22,3 +22,4 @@ import fs from "fs "
        fs.unlinkSync(localfilePath)
     }
   }
+  export {uploadOnCloudinary}

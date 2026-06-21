@@ -1,6 +1,5 @@
 import mongoose,{ Schema } from "mongoose"
 import jwt from "jsonwebtoken"
-import { JsonWebTokenError } from "jsonwebtoken";
 
 const UserSchema = new Schema({
       username:{
@@ -48,7 +47,7 @@ const UserSchema = new Schema({
 
 UserSchema.pre("save",async function(next){
   if(!this.isModified("Password")) return next();
-  this.Password =bcrypt.hash(this.Password,10)
+  this.Password = await bcrypt.hash(this.Password,10)
   next()
 })
 
@@ -57,10 +56,10 @@ UserSchema.methods.CheckPassword = async function(password ){
 }
 UserSchema.methods.generateAccesstokens = async function(){
   jwt.sign({
-    _id = this.id,
-    username = this.username,
-    email = this.email,
-    fullname = this.fullname
+    _id : this._id,
+    username : this.username,
+    email : this.email,
+    fullname : this.fullname
   },
   process.env.ACCESS_TOKEN_SECRET,{
     expiresIn: process.env.ACCESS_TOKEN_EXPIRY
@@ -68,7 +67,7 @@ UserSchema.methods.generateAccesstokens = async function(){
 }
 UserSchema.methods.generateRefreshtokens = async function(){
   jwt.sign({
-    _id = this.id,
+    _id : this._id,
     
   },
   process.env.REFRESH_TOKEN_SECRET,{
