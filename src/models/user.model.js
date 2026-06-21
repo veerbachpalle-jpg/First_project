@@ -1,5 +1,6 @@
 import mongoose, { Schema } from "mongoose"
 import jwt from "jsonwebtoken"
+import bcrypt from "bcrypt"
 
 const UserSchema = new Schema({
   username: {
@@ -35,7 +36,7 @@ const UserSchema = new Schema({
     type: Schema.Types.ObjectId,
     ref: "Video"
   },
-  Password: {
+  password: {
     type: String,
     required: [true, "Password is required"]
   },
@@ -46,13 +47,13 @@ const UserSchema = new Schema({
   , { timestamps: true })
 
 UserSchema.pre("save", async function (next) {
-  if (!this.isModified("Password")) return next();
-  this.Password = await bcrypt.hash(this.Password, 10)
-  next()
+  if (!this.isModified("password")) return next();
+  this.password = await bcrypt.hash(this.password, 10)
+  
 })
 
 UserSchema.methods.CheckPassword = async function (password) {
-  return await bcrypt.compare(Password, this.password)
+  return await bcrypt.compare(password, this.password)
 }
 UserSchema.methods.generateAccesstokens = async function () {
   jwt.sign({
