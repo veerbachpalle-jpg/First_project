@@ -2,6 +2,8 @@ import { createFileRoute, Link } from "@tanstack/react-router";
 import { motion } from "framer-motion";
 import { Calendar, Mail, Pencil, Sparkles } from "lucide-react";
 import { useAuth } from "@/context/AuthContext";
+import { useState, useEffect } from "react";
+import { userService } from "@/services/user.service";
 
 export const Route = createFileRoute("/_authenticated/profile")({
   head: () => ({ meta: [{ title: "Profile — VidoraHub" }] }),
@@ -10,6 +12,25 @@ export const Route = createFileRoute("/_authenticated/profile")({
 
 function ProfilePage() {
   const { user } = useAuth();
+  const [profile, setProfile] = useState<any>(null);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    if (!user?.username) return;
+    let mounted = true;
+    userService.getChannelProfile(user.username)
+      .then((data) => {
+        if (mounted) {
+          setProfile(data);
+          setLoading(false);
+        }
+      })
+      .catch(() => {
+        if (mounted) setLoading(false);
+      });
+    return () => { mounted = false; };
+  }, [user?.username]);
+
   if (!user) return null;
 
   return (
@@ -67,9 +88,9 @@ function ProfilePage() {
 
       <div className="grid gap-4 sm:grid-cols-3">
         {[
-          { label: "Videos", value: "—" },
-          { label: "Subscribers", value: "—" },
-          { label: "Total views", value: "—" },
+          { label: "Videos", value: loading ? "..." : (profile?.videosCount ?? 0).toLocaleString() },
+          { label: "Subscribers", value: loading ? "..." : (profile?.subscriberscount ?? 0).toLocaleString() },
+          { label: "Total views", value: loading ? "..." : (profile?.totalViews ?? 0).toLocaleString() },
         ].map((s) => (
           <div key={s.label} className="glass rounded-2xl p-5">
             <div className="text-xs uppercase tracking-wide text-muted-foreground">{s.label}</div>

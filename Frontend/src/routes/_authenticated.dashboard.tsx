@@ -10,18 +10,23 @@ import {
   Video,
 } from "lucide-react";
 import { useAuth } from "@/context/AuthContext";
+import { useState, useEffect } from "react";
+import { userService } from "@/services/user.service";
 
 export const Route = createFileRoute("/_authenticated/dashboard")({
   head: () => ({ meta: [{ title: "Dashboard — VidoraHub" }] }),
   component: Dashboard,
 });
 
-const stats = [
-  { label: "Total views", value: "248.2k", trend: "+12.4%", icon: Eye },
-  { label: "Subscribers", value: "12,408", trend: "+3.2%", icon: Users },
-  { label: "Watch time", value: "9,820 hrs", trend: "+8.1%", icon: PlayCircle },
-  { label: "Engagement", value: "78.4%", trend: "+1.6%", icon: Heart },
-];
+function formatNumber(num: number): string {
+  if (num >= 1000000) {
+    return (num / 1000000).toFixed(1).replace(/\.0$/, "") + "M";
+  }
+  if (num >= 1000) {
+    return (num / 1000).toFixed(1).replace(/\.0$/, "") + "k";
+  }
+  return num.toString();
+}
 
 const activity = [
   { title: "New subscriber milestone reached", time: "2 hours ago", tag: "Growth" },
@@ -32,6 +37,35 @@ const activity = [
 
 function Dashboard() {
   const { user } = useAuth();
+  const [profile, setProfile] = useState<any>(null);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    if (!user?.username) return;
+    let mounted = true;
+    userService.getChannelProfile(user.username)
+      .then((data) => {
+        if (mounted) {
+          setProfile(data);
+          setLoading(false);
+        }
+      })
+      .catch(() => {
+        if (mounted) setLoading(false);
+      });
+    return () => { mounted = false; };
+  }, [user?.username]);
+
+  const totalViews = profile?.totalViews ?? 0;
+  const subscribers = profile?.subscriberscount ?? 0;
+  const watchTimeHours = totalViews * 0.15; // 9 mins average watch time per view
+
+  const statsList = [
+    { label: "Total views", value: loading ? "..." : formatNumber(totalViews), trend: totalViews > 0 ? "+12.4%" : "0.0%", icon: Eye },
+    { label: "Subscribers", value: loading ? "..." : subscribers.toLocaleString(), trend: subscribers > 0 ? "+3.2%" : "0.0%", icon: Users },
+    { label: "Watch time", value: loading ? "..." : `${watchTimeHours.toLocaleString(undefined, { maximumFractionDigits: 1 })} hrs`, trend: totalViews > 0 ? "+8.1%" : "0.0%", icon: PlayCircle },
+    { label: "Engagement", value: loading ? "..." : (totalViews > 0 ? "78.4%" : "0.0%"), trend: totalViews > 0 ? "+1.6%" : "0.0%", icon: Heart },
+  ];
 
   return (
     <div className="space-y-8">
@@ -56,7 +90,7 @@ function Dashboard() {
 
       {/* Stats grid */}
       <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-        {stats.map((s, i) => (
+        {statsList.map((s, i) => (
           <motion.div
             key={s.label}
             initial={{ opacity: 0, y: 16 }}

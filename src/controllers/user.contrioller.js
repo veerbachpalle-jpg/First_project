@@ -121,13 +121,13 @@ const loginUser = asyncHandler(async (req,res)=>{
 
   const options = {
     httpOnly : true,
-    secure:true
+    secure: process.env.NODE_ENV === "production"
   }
 
   return res.
   status(200)
-  .cookie("accesstoken",accessToken)
-  .cookie("refreshToken",refreshToken)
+  .cookie("accesstoken",accessToken,options)
+  .cookie("refreshToken",refreshToken,options)
   .json(
     new ApiResponse(
       200,{
@@ -186,14 +186,14 @@ const refreshAccessToken = asyncHandler(async (req,res)=>{
   
     const options ={
       httpOnly :true,
-      secure :true
+      secure : process.env.NODE_ENV === "production"
     }
   
     const {accessToken ,newrefreshToken} = await generateAccessAndRefreshTokens(user._id)
   
     return res.status(200)
-    .cookie("accessToken",accessToken,options)
-    .cookie("Refreshtoken",newrefreshToken,options)
+    .cookie("accesstoken",accessToken,options)
+    .cookie("refreshToken",newrefreshToken,options)
     .json(
       new ApiResponse(
         200,
@@ -235,20 +235,17 @@ const getCurrentUser = asyncHandler(async (req,res)=>{
 const updateAccountDetails = asyncHandler(async(req,res)=>{
   const {fullname,email}=req.body
 
-  if(!fullname ||!email){
-    throw new ApiError(400,"anyone field is required")
+  if(!fullname && !email){
+    throw new ApiError(400,"At least one field is required")
   }
   const updatefields ={}
-  if(fullname) updatefields.fullName= fullname
+  if(fullname) updatefields.fullname = fullname
   if(email) updatefields.email = email
   
   const user =  await User.findByIdAndUpdate(
-    req.user?.id,
+    req.user?._id,
     {
-      $set:{
-        updatefields
-        
-      }
+      $set: updatefields
     },
     {new:true}
   ).select("-password")
@@ -271,7 +268,7 @@ const updateUserAvatar = asyncHandler(async(req,res)=>{
     throw new ApiError(400,"Error while uploading on avatar")
   }
 
-  await user.findByIdAndUpdate(
+  const user = await User.findByIdAndUpdate(
     req.user?._id,
     {
       $set:{
@@ -299,7 +296,7 @@ const updateUserCoverImage = asyncHandler(async(req,res)=>{
     throw new ApiError(400,"Error while uploading on coverimage")
   }
 
-  const user =await user.findByIdAndUpdate(
+  const user = await User.findByIdAndUpdate(
     req.user?._id,
     {
       $set:{
@@ -323,13 +320,13 @@ const getUserChannelProfile= asyncHandler(async (req,res)=>{
     throw new ApiError(400,"username is missing")
   }
 
-  const channel = User.aggregate([{
+  const channel = await User.aggregate([{
     $match:{
       username: username?.toLowerCase()
     }
   },{
     $lookup:{
-      from:"subcription",
+      from:"subcriptions",
       localField: "_id",
       foreignField: "channel",
       as:"subscribers"
@@ -337,11 +334,20 @@ const getUserChannelProfile= asyncHandler(async (req,res)=>{
   },
   {
     $lookup:{
-      from:"subcription",
+      from:"subcriptions",
       localField: "_id",
       foreignField: "subscriber",
       as:"subscribedTo"
-  }},{
+  }},
+  {
+    $lookup: {
+      from: "videos",
+      localField: "_id",
+      foreignField: "owner",
+      as: "videos"
+    }
+  },
+  {
     $addFields:{
       subscriberscount:{
         $size:"$subscribers"
@@ -355,6 +361,12 @@ const getUserChannelProfile= asyncHandler(async (req,res)=>{
           then: true, 
           else:false
         }
+      },
+      videosCount: {
+        $size: "$videos"
+      },
+      totalViews: {
+        $sum: "$videos.views"
       }
     }
   },
@@ -367,7 +379,9 @@ const getUserChannelProfile= asyncHandler(async (req,res)=>{
       isSubscribed:1,
       avatar:1,
       coverimage:1,
-      email:1
+      email:1,
+      videosCount: 1,
+      totalViews: 1
     }
   }
 ])

@@ -22,12 +22,16 @@ const uploadOnCloudinary = async (localfilePath) => {
     })
 
     console.log("file uploaded successfully on cloundinary", response.secure_url);
+    if (fs.existsSync(localfilePath)) {
+      fs.unlinkSync(localfilePath);
+    }
     return response;
   } catch (error) {
     console.log("Cloudinary error:", error);
 
     if (fs.existsSync(localfilePath)) {
-      fs.unlinkSync(localfilePath);}
+      fs.unlinkSync(localfilePath);
+    }
   }
 }
 export { uploadOnCloudinary }

@@ -39,4 +39,9 @@ export const userService = {
     });
     return mapUser(unwrap<any>(data))!;
   },
+
+  async getChannelProfile(username: string): Promise<any> {
+    const { data } = await api.get(`/users/c/${username}`);
+    return unwrap<any>(data);
+  },
 };
