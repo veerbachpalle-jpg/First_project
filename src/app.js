@@ -1,6 +1,10 @@
 import express from "express"
 import cors from "cors"
 import cookieParser from "cookie-parser"
+import fs from "fs"
+
+
+fs.mkdirSync("./public/temp", { recursive: true })
 
 const app = express()
 
@@ -23,4 +27,7 @@ import userrouter from "./routes/user.routes.js"
 
 app.use("/users",userrouter)
 
-export default  app 
+import { errorHandler } from "./middlewares/error.middleware.js"
+app.use(errorHandler)
+
+export default  app
