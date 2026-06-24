@@ -121,7 +121,8 @@ const loginUser = asyncHandler(async (req,res)=>{
 
   const options = {
     httpOnly : true,
-    secure: process.env.NODE_ENV === "production"
+    secure: process.env.NODE_ENV === "production",
+    sameSite: process.env.NODE_ENV === "production" ? "none" : "lax"
   }
 
   return res.
@@ -151,7 +152,8 @@ const logoutUser = asyncHandler( async(req,res)=>{
     )
     const options = {
     httpOnly : true,
-    secure:true
+    secure: process.env.NODE_ENV === "production",
+    sameSite: process.env.NODE_ENV === "production" ? "none" : "lax"
   }
   return res 
   .status(200)
@@ -175,7 +177,7 @@ const refreshAccessToken = asyncHandler(async (req,res)=>{
       incomingRefreshToken,process.env.REFRESH_TOKEN_SECRET
     )
   
-    const user = await User.findById(decodedToken?._id)
+    const user = User.findById(decodedToken?._id)
     if(!user){
       throw new ApiError(401,"Invalid refresh token")
     }
@@ -186,7 +188,8 @@ const refreshAccessToken = asyncHandler(async (req,res)=>{
   
     const options ={
       httpOnly :true,
-      secure : process.env.NODE_ENV === "production"
+      secure : process.env.NODE_ENV === "production",
+      sameSite: process.env.NODE_ENV === "production" ? "none" : "lax"
     }
   
     const {accessToken ,newrefreshToken} = await generateAccessAndRefreshTokens(user._id)
